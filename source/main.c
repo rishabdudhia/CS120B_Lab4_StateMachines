@@ -22,29 +22,45 @@ unsigned char Tick(unsigned char cntA0)
 	    state = pb0_on;
 	    break;
 	case pb0_on:
-	    state = pb0_wait;
+	    if ((PINA & 0x01) == 0x01)
+	    {
+		state = pb0_wait;
+	    }
+	    else
+	    {
+		state = pb0_on;
+	        cntA0 = cntA0 + 1;
+	    }
 	    break;
 	case pb0_wait:
 	    if((PINA & 0x01) == 0x01)
 	    {
-		state = pb1_on;
+		state = pb0_wait;
 	    }
 	    else
 	    {
-		state = pb0_wait;
+		state = pb1_on;
 	    }
 	    break;
 	case pb1_on:
-	    state = pb1_wait;
+	    if ((PINA & 0x01) == 0x01)
+	    {
+		state = pb1_wait;
+	    }
+	    else
+	    {
+		state = pb1_on;
+	        cntA0 = cntA0 + 1;
+	    }
 	    break;
 	case pb1_wait:
 	    if ((PINA & 0x01) == 0x01)
 	    {
-		state = pb0_on;
+		state = pb1_wait;
 	    }
 	    else
 	    {
-		state = pb1_wait;
+		state = pb0_on;
 	    }
 	    break;
 
@@ -60,14 +76,14 @@ unsigned char Tick(unsigned char cntA0)
             PORTB = 0x01;
 	    return cntA0;
         case pb0_wait:
-            PORTB = 0x01;
-            return (cntA0 + 1);
+            PORTB = 0x02;
+            return (cntA0);
         case pb1_on:
             PORTB = 0x02;
 	    return cntA0;
         case pb1_wait:
-            PORTB = 0x02;
-            return (cntA0 + 1);
+            PORTB = 0x01;
+            return (cntA0);
 
         default:
             return cntA0;
@@ -78,9 +94,9 @@ int main(void) {
     DDRA = 0x00; PORTA = 0xFF;
     DDRB = 0xFF; PORTB = 0x00;
     unsigned char cntA0 = 0x00;
+    state = smstart;
     /* Insert your solution below */
     while (1) {
-	state = smstart;
 	cntA0 = Tick(cntA0);
     }
     return 0;
