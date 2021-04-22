@@ -1,9 +1,9 @@
 /*	Author: Rishab Dudhia (rdudh001)
  *  Partner(s) Name: 
  *	Lab Section:022
- *	Assignment: Lab #4  Exercise #1
+ *	Assignment: Lab #4  Exercise #2
  *	Exercise Description: [optional - include for your own benefit]
- *	Initially PB0 on and pressing PA0 turns B0 off and B1 on; repeat
+ *	A0 increments; A1 decrements; PORTC starts at 7
  *	I acknowledge all content contained herein, excluding template or example
  *	code, is my own original work.
  */
@@ -12,92 +12,110 @@
 #include "simAVRHeader.h"
 #endif
 
-enum States { smstart, pb0_on, pb0_wait, pb1_on, pb1_wait } state;
-
-unsigned char Tick(unsigned char cntA0)
+enum States {smstart, wait, inc, dec, inc_w, dec_w, reset } state;
+unsigned char cntA0;
+unsigned char cntA1;
+void Tick()
 {
+    unsigned char actualC = PORTC;
+    unsigned char tempC = PORTC & 0x03;
     switch(state)
     {
 	case smstart:
-	    state = pb0_on;
+	    state = wait;
 	    break;
-	case pb0_on:
-	    if ((PINA & 0x01) == 0x01)
+	case wait:
+	    if (((PINA & 0x01) == 0x01) && (PORTC < 0x09))
 	    {
-		state = pb0_wait;
+		state = inc;
+	    	cntA0 = cntA0 + 1;
+	    }
+	    else if (((PINA & 0x02) == 0x02) && (PORTC > 0x00))
+	    {
+		state = dec;
+	        cntA1 = cntA1 + 1;
 	    }
 	    else
 	    {
-		state = pb0_on;
-	        cntA0 = cntA0 + 1;
+		state = wait;
 	    }
 	    break;
-	case pb0_wait:
-	    if((PINA & 0x01) == 0x01)
+	case inc_wait:
+	    if((PINA & 0x03) == 0x01)
 	    {
-		state = pb0_wait;
+		state = inc_wait;
+	    }
+	    else if ((PINA & 0x03) == 0x00)
+	    {
+		state = reset;
 	    }
 	    else
 	    {
-		state = pb1_on;
+		state = wait;
 	    }
 	    break;
-	case pb1_on:
-	    if ((PINA & 0x01) == 0x01)
+	case dec_wait:
+	    if ((PINA & 0x03) == 0x02)
 	    {
-		state = pb1_wait;
+		state = dec_wait;
+	    }
+	    else if ((PINA & 0x03) == 0x00)
+	    {
+		state = reset;
 	    }
 	    else
 	    {
-		state = pb1_on;
-	        cntA0 = cntA0 + 1;
+		state = wait;
 	    }
 	    break;
-	case pb1_wait:
-	    if ((PINA & 0x01) == 0x01)
-	    {
-		state = pb1_wait;
-	    }
-	    else
-	    {
-		state = pb0_on;
-	    }
+	case inc:
+	    state = inc_wait;
+	    break;
+	case dec:
+	    state = dec_wait;
+	    break;
+	case reset:
+	    state = wait;
 	    break;
 
-	    default:
-		state = smstart;
-		break;
+        default:
+	    state = smstart;
+	    break;
     }
 
     switch(state)
     {
         case smstart:
-        case pb0_on:
-            PORTB = 0x01;
-	    return cntA0;
-        case pb0_wait:
-            PORTB = 0x02;
-            return (cntA0);
-        case pb1_on:
-            PORTB = 0x02;
-	    return cntA0;
-        case pb1_wait:
-            PORTB = 0x01;
-            return (cntA0);
-
+	    PORTC = 0x07;
+        case wait:
+        case inc_wait:
+        case dec_wait:
+	    break;
+        case inc:
+            actualC = actualC + 1;
+	    PORTC = actualC;
+            break;
+	case dec:
+	    actualC = actualC - 1;
+	    PORTC = actualC;
+	    break;
+	case reset:
+	    PORTC = 0x00;
+	    break;
         default:
-            return cntA0;
+            break;
     }
 }
 int main(void) {
     /* Insert DDR and PORT initializations */
     DDRA = 0x00; PORTA = 0xFF;
-    DDRB = 0xFF; PORTB = 0x00;
-    unsigned char cntA0 = 0x00;
+    DDRC = 0xFF; PORTC = 0x07;
+    cntA0 = 0x00;
+    cntA1 = 0x00;
     state = smstart;
     /* Insert your solution below */
     while (1) {
-	cntA0 = Tick(cntA0);
+	Tick();
     }
     return 0;
 }
