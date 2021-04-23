@@ -1,9 +1,9 @@
 /*	Author: Rishab Dudhia (rdudh001)
  *  Partner(s) Name: 
  *	Lab Section:022
- *	Assignment: Lab #4  Exercise #2
+ *	Assignment: Lab #4  Exercise #3
  *	Exercise Description: [optional - include for your own benefit]
- *	A0 increments; A1 decrements; PORTC starts at 7
+ *	Deadbolt A2 = '#' A1 = 'Y' A0 = 'X' A7 = lock;B0: 1 = unlocked; B0: 0 = locked; combination to unlock: press #, release #, press Y
  *	I acknowledge all content contained herein, excluding template or example
  *	code, is my own original work.
  */
@@ -12,53 +12,120 @@
 #include "simAVRHeader.h"
 #endif
 
-enum States {smstart, wait, inc, dec, inc_wait, dec_wait, reset } state;
+enum States {smstart, wait_hash_p, wait_hash_r, wait_y, unlocked, locked } state;
 unsigned char cntA0;
 unsigned char cntA1;
+unsigned char cntA2;
+unsigned char cntA7;
 void Tick()
 {
-    unsigned char actualC = PINC ;
-    //unsigned char tempC = PORTC & 0x03;
+    //unsigned char actualC = PINC ;
+    unsigned char tempA = PINA & 0x87;
     switch(state)
     {
 	case smstart:
-	    state = wait;
+	    state = wait_hash_p;
 	    break;
-	case wait:
-	    if (((PINA & 0x03) == 0x01) && (PORTC < 0x09))
+	case wait_hash_p:
+	    if (tempA == 0x04)
 	    {
-		state = inc;
-	    	cntA0 = cntA0 + 1;
+		state = wait_hash_r;
+	    	cntA2 = cntA2 + 1;
 	    }
-	    else if (((PINA & 0x03) == 0x02) && (PORTC > 0x00))
+	    else if (tempA == 0x80)
 	    {
-		state = dec;
-	        cntA1 = cntA1 + 1;
+		state = locked;
+	        cntA7 = cntA7 + 1;
+	    }
+	    else if (tempA == 0x02)
+	    {
+		state = wait_hash_p;
+		//cntA1 = cntA1 + 1;
+	    }
+	    else if (tempA == 0x01)
+	    {
+		state = wait_hash_p;
+		//cntA0 = cntA0 + 1;
 	    }
 	    else
 	    {
-		state = wait;
+		state = wait_hash_p;
 	    }
 	    break;
-	case inc_wait:
-	    if((PINA & 0x03) == 0x01)
+	case wait_hash_r:
+	    if(tempA == 0x00)
 	    {
-		state = inc_wait;
+		state = wait_y;
 	    }
-	    else if ((PINA & 0x03) == 0x02)
+	    else if (tempA == 0x04)
 	    {
-		state = dec;
+		state = wait_hash_r;
+	    }
+	    else if (tempA == 0x80)
+	    {
+		state = locked;
+		cntA7 = cntA7 + 1;
+	    }
+	    else if (tempA == 0x02)
+	    {
+		state = wait_hash_p;
 		cntA1 = cntA1 + 1;
 	    }
-	    else if ((PINA & 0x03) == 0x00)
+	    else if (tempA == 0x01)
 	    {
-		state = reset;
+		state = wait_hash_p;
+		cntA0 = cntA0 + 1;
 	    }
 	    else
 	    {
-		state = wait;
+		state = wait_hash_p;
 	    }
 	    break;
+	 case wait_y:
+            if(tempA == 0x00)
+            {
+                state = wait_y;
+            }
+            else if (tempA == 0x04)
+            {
+                state = wait_hash_p;
+		cntA2 = cntA2 + 1;
+            }
+            else if (tempA == 0x80)
+            {
+                state = locked;
+                cntA7 = cntA7 + 1;
+            }
+            else if (tempA == 0x02)
+            {
+                state = unlocked;
+                cntA1 = cntA1 + 1;
+            }
+	    else if (tempA == 0x01)
+	    {
+		state = wait_hash_p;
+		cntA0 = cntA0 + 1;
+	    }
+            else
+            {
+                state = wait_hash_p;
+            }
+            break;
+	case unlocked:
+	    if (tempA == 0x80)
+	    {
+		state = locked;
+		cntA7 = cntA7 + 1;
+	    }
+	    else
+	    {
+		state = wait_hash_p;
+	    }
+	    break;
+	case locked:
+	    state = wait_hash_p;
+	    break;
+
 	case dec_wait:
 	    if ((PINA & 0x03) == 0x02)
 	    {
@@ -78,16 +145,6 @@ void Tick()
 		state = wait;
 	    }
 	    break;
-	case inc:
-	    state = inc_wait;
-	    break;
-	case dec:
-	    state = dec_wait;
-	    break;
-	case reset:
-	    state = wait;
-	    break;
-
         default:
 	    state = smstart;
 	    break;
@@ -96,21 +153,16 @@ void Tick()
     switch(state)
     {
         case smstart:
-	    PORTC = 0x07;
-        case wait:
-        case inc_wait:
-        case dec_wait:
+	    PORTB = 0x00;
+        case wait_hash_p:
+        case wait_hash_r:
+        case wait_y:
 	    break;
-        case inc:
-            actualC = actualC + 1;
-	    PORTC = actualC;
+        case unlocked:
+            PORTB = 0x01;
             break;
 	case dec:
-	    actualC = actualC - 1;
-	    PORTC = actualC;
-	    break;
-	case reset:
-	    PORTC = 0x00;
+	    PORTB = 0x00;
 	    break;
         default:
             break;
@@ -119,9 +171,11 @@ void Tick()
 int main(void) {
     /* Insert DDR and PORT initializations */
     DDRA = 0x00; PORTA = 0xFF;
-    DDRC = 0xFF; PORTC = 0x07;
+    DDRB = 0xFF; PORTB = 0x00;
     cntA0 = 0x00;
     cntA1 = 0x00;
+    cntA2 = 0x00;
+    cntA7 = 0x00;
     state = smstart;
     /* Insert your solution below */
     while (1) {
