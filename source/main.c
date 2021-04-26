@@ -1,148 +1,103 @@
 /*	Author: Rishab Dudhia (rdudh001)
- *  Partner(s) Name: 
- *	Lab Section:
- *	Assignment: Lab #4  Exercise #2
- *	Exercise Description: [optional - include for your own benefit]
- *	PORTC starts at 7; A0 increments; A1 decrements
- *	I acknowledge all content contained herein, excluding template or example
- *	code, is my own original work.
- *
- */
-
+ *	 *  Partner(s) Name: 
+ *	  *	Lab Section:022
+ *	   *	Assignment: Lab #4  Exercise #1
+ *	    *	Exercise Description: [optional - include for your own benefit]
+ *	     *	Initially PB0 on and pressing PA0 turns B0 off and B1 on; repeat
+ *	      *	I acknowledge all content contained herein, excluding template or example
+ *	       *	code, is my own original work.
+ *	        */
 #include <avr/io.h>
 #ifdef _SIMULATE_
 #include "simAVRHeader.h"
 #endif
 
-enum States {smstart, wait, inc, dec, inc_wait, dec_wait, reset_wait, reset } state;
-unsigned char cntA0;
-unsigned char cntA1;
-void Tick()
+enum States { smstart, pb0_on, pb0_wait, pb1_on, pb1_wait } state;
+
+unsigned char Tick(unsigned char cntA0)
 {
-    unsigned char actualC = PINC ;
-    //unsigned char tempC = PORTC & 0x03;
     switch(state)
     {
 	case smstart:
-	    state = wait;
+	    state = pb0_on;
 	    break;
-	case wait:
-	    if (((PINA & 0x03) == 0x01) && (PORTC < 0x09))
+	case pb0_on:
+	    if ((PINA & 0x01) == 0x01)
 	    {
-		state = inc;
-	    	cntA0 = cntA0 + 1;
-	    }
-	    else if (((PINA & 0x03) == 0x02) && (PORTC > 0x00))
-	    {
-		state = dec;
-	        cntA1 = cntA1 + 1;
-	    }
-	    /*else if ((PINA & 0x03) == 0x03)
-	    {
-		    state = reset;
-	    	    cntA0 = cntA0 + 1;
-		    cntA1 = cntA1 + 1;
-	    }*/
-	    else
-	    {
-		state = wait;
-	    }
-	    break;
-	case inc_wait:
-	    if((PINA & 0x03) == 0x01)
-	    {
-		state = inc_wait;
-	    }
-	    else if ((PINA & 0x03) == 0x02)
-	    {
-		state = dec;
-		cntA1 = cntA1 + 1;
-	    }
-	    else if ((PINA & 0x03) == 0x03)
-	    {
-		cntA1 = cntA1 + 1;
-		state = reset;
+		state = pb0_wait;
 	    }
 	    else
 	    {
-		state = wait;
+		state = pb0_on;
+	        cntA0 = cntA0 + 1;
 	    }
 	    break;
-	case dec_wait:
-	    if ((PINA & 0x03) == 0x02)
+	case pb0_wait:
+	    if((PINA & 0x01) == 0x01)
 	    {
-		state = dec_wait;
-	    }
-	    else if ((PINA & 0x03) == 0x01)
-	    {
-		state = inc;
-		cntA0 = cntA0 + 1;
-	    }
-	    else if ((PINA & 0x03) == 0x03)
-	    {
-		cntA0 = cntA0 + 1;
-		state = reset;
+		state = pb0_wait;
 	    }
 	    else
 	    {
-		state = wait;
+		state = pb1_on;
 	    }
 	    break;
-	case reset_wait:
-	    if ((PINA & 0x03) == 0x00)
-		    state = wait;
+	case pb1_on:
+	    if ((PINA & 0x01) == 0x01)
+	    {
+		state = pb1_wait;
+	    }
 	    else
-		    state = reset_wait;
+	    {
+		state = pb1_on;
+	        cntA0 = cntA0 + 1;
+	    }
 	    break;
-	case inc:
-	    state = inc_wait;
-	    break;
-	case dec:
-	    state = dec_wait;
-	    break;
-	case reset:
-	    state = reset_wait;
+	case pb1_wait:
+	    if ((PINA & 0x01) == 0x01)
+	    {
+		state = pb1_wait;
+	    }
+	    else
+	    {
+		state = pb0_on;
+	    }
 	    break;
 
-        default:
-	    state = smstart;
-	    break;
+	    default:
+		state = smstart;
+		break;
     }
 
     switch(state)
     {
         case smstart:
-	    PORTC = 0x07;
-        case wait:
-	case reset_wait:
-        case inc_wait:
-        case dec_wait:
-	    break;
-        case inc:
-            actualC = actualC + 1;
-	    PORTC = actualC;
-            break;
-	case dec:
-	    actualC = actualC - 1;
-	    PORTC = actualC;
-	    break;
-	case reset:
-	    PORTC = 0x00;
-	    break;
+        case pb0_on:
+            PORTB = 0x01;
+	    return cntA0;
+        case pb0_wait:
+            PORTB = 0x02;
+            return (cntA0);
+        case pb1_on:
+            PORTB = 0x02;
+	    return cntA0;
+        case pb1_wait:
+            PORTB = 0x01;
+            return (cntA0);
+
         default:
-            break;
+            return cntA0;
     }
 }
 int main(void) {
     /* Insert DDR and PORT initializations */
     DDRA = 0x00; PORTA = 0xFF;
-    DDRC = 0xFF; PORTC = 0x07;
-    cntA0 = 0x00;
-    cntA1 = 0x00;
+    DDRB = 0xFF; PORTB = 0x00;
+    unsigned char cntA0 = 0x00;
     state = smstart;
     /* Insert your solution below */
     while (1) {
-	Tick();
+	cntA0 = Tick(cntA0);
     }
     return 0;
 }

@@ -1,12 +1,12 @@
 /*	Author: Rishab Dudhia (rdudh001)
- *  Partner(s) Name: 
- *	Lab Section:022
- *	Assignment: Lab #4  Exercise #1
- *	Exercise Description: [optional - include for your own benefit]
- *	Initially PB0 on and pressing PA0 turns B0 off and B1 on; repeat
- *	I acknowledge all content contained herein, excluding template or example
- *	code, is my own original work.
- */
+ *	 *  Partner(s) Name: 
+ *	  *	Lab Section:022
+ *	   *	Assignment: Lab #4  Exercise #1
+ *	    *	Exercise Description: [optional - include for your own benefit]
+ *	     *	Initially PB0 on and pressing PA0 turns B0 off and B1 on; repeat
+ *	      *	I acknowledge all content contained herein, excluding template or example
+ *	       *	code, is my own original work.
+ *	        */
 #include <avr/io.h>
 #ifdef _SIMULATE_
 #include "simAVRHeader.h"
